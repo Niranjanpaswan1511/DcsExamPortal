@@ -1,0 +1,256 @@
+﻿@{
+    Layout = "~/Views/Shared/_UserLayout.cshtml";
+    int formId = Convert.ToInt32(ViewBag.id);
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-header bg-primary text-white py-3 rounded-top-4">
+            <h3 id="formTitle" class="mb-0">Loading...</h3>
+        </div>
+
+        <div class="card-body p-4">
+            <p id="formDescription" class="text-muted mb-4"></p>
+
+            <form id="dynamicForm" class="needs-validation" novalidate>
+            
+
+                <div class="mt-4 border-top pt-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-semibold">
+                        💰 Fee Amount:
+                        <span id="formFee" class="text-success">₹0.00</span>
+                    </h5>
+                    <button type="button" id="payButton" class="btn btn-success btn-lg">
+                        💳 Pay & Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+    let formFee = 0;
+
+    async function loadForm() {
+        try {
+            const res = await fetch(`https://localhost:7267/api/Form/${@formId}`);
+            const result = await res.json();
+
+            if (!result.success) {
+                alert("Form not found!");
+                return;
+            }
+
+            const form = result.data;
+
+           
+            document.getElementById("formTitle").innerText = form.title;
+            document.getElementById("formDescription").innerText = form.description;
+            formFee = form.fee || 0;
+            document.getElementById("formFee").innerText = formFee > 0 ? `₹${formFee.toFixed(2)}` : "Free";
+
+          
+            const fields = JSON.parse(form.fields);
+            const formEl = document.getElementById("dynamicForm");
+
+            fields.forEach(field => {
+                const formGroup = document.createElement("div");
+                formGroup.classList.add("mb-3");
+
+                const label = document.createElement("label");
+                label.classList.add("form-label", "fw-semibold");
+                label.innerText = field.label;
+
+                let input;
+                if (field.type === "text" || field.type === "date") {
+                    input = document.createElement("input");
+                    input.type = field.type;
+                    input.name = field.label;
+                    input.classList.add("form-control", "p-2");
+                    input.placeholder = `Enter ${field.label}`;
+                    input.required = true;
+                }
+
+                else  if (field.type === "file") {
+                    input = document.createElement("input");
+                    input.type = field.type;
+                    input.name = field.label;
+                    input.classList.add("form-control", "p-2");
+                    input.required = true;
+                }
+                
+                else if (field.type === "dropdown") {
+                    input = document.createElement("select");
+                    input.name = field.label;
+                    input.classList.add("form-select", "p-2");
+                    input.required = true;
+
+                    const defaultOption = document.createElement("option");
+                    defaultOption.value = "";
+                    defaultOption.text = `Select ${field.label}`;
+                    input.appendChild(defaultOption);
+
+                    field.options.forEach(opt => {
+                        const option = document.createElement("option");
+                        option.value = opt;
+                        option.text = opt;
+                        input.appendChild(option);
+                    });
+                }
+
+                const error = document.createElement("div");
+                error.classList.add("invalid-feedback");
+                error.innerText = `Please enter ${field.label}.`;
+
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                formGroup.appendChild(error);
+
+                formEl.insertBefore(formGroup, formEl.lastElementChild);
+            });
+        } catch (err) {
+            alert("Error loading form: " + err.message);
+        }
+    }
+
+    loadForm();
+
+    function validateForm() {
+        const form = document.getElementById("dynamicForm");
+        if (!form.checkValidity()) {
+            form.classList.add("was-validated");
+            return false;
+        }
+        return true;
+    }
+
+  
+    document.getElementById("payButton").addEventListener("click", async function () {
+        if (!validateForm()) {
+            alert("⚠️ Please fill all required fields.");
+            return;
+        }
+
+        const formData = new FormData(document.getElementById("dynamicForm"));
+        const answers = {};
+        formData.forEach((v, k) => (answers[k] = v));
+
+    
+        const orderRes = await fetch("https://localhost:7267/api/Payment/CreateOrder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: formFee, currency: "INR" })
+        });
+
+        if (!orderRes.ok) {
+            alert("❌ Failed to create payment order.");
+            return;
+        }
+
+        const order = await orderRes.json();
+
+  
+        const options = {
+            key: order.key,
+            amount: order.amount,
+            currency: order.currency,
+            name: "Exam Portal",
+            description: "Exam Form Payment",
+            order_id: order.orderId,
+            handler: async function (response) {
+                const submission = {
+                    userId: 2, // TODO: Get from session
+                    formId: @formId,
+                    answers: JSON.stringify(answers),
+                    status: "Submitted",
+                    paymentId: response.razorpay_payment_id,
+                    orderId: response.razorpay_order_id,
+                    signature: response.razorpay_signature
+                };
+
+                // Step 3️⃣ Save Form Submission
+                const subRes = await fetch("https://localhost:7267/api/Submission", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(submission)
+                });
+
+                if (!subRes.ok) {
+                    alert("❌ Submission failed!");
+                    return;
+                }
+
+                const subData = await subRes.json();
+
+                // Step 4️⃣ Save Payment Info
+                const paymentObj = {
+                    submissionId: subData.data.id,
+                    provider: "Razorpay",
+                    orderId: response.razorpay_order_id,
+                    paymentId: response.razorpay_payment_id,
+                    amount: formFee,
+                    currency: "INR",
+                    status: "Paid",
+                    signature: response.razorpay_signature
+                };
+
+                await fetch("https://localhost:7267/api/Payment/Save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(paymentObj)
+                });
+
+                
+                downloadReceipt(response.razorpay_order_id);
+            },
+            theme: { color: "#0d6efd" }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+    });
+
+
+    async function downloadReceipt(orderId) {
+        try {
+            const receiptRes = await fetch(`https://localhost:7267/api/Pdf/fee-receipt?orderId=${orderId}
+    `);
+            if (!receiptRes.ok) {
+                alert("⚠️ Unable to download receipt.");
+                return;
+            }
+
+            const blob = await receiptRes.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "FeeReceipt.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            alert("✅ Receipt downloaded successfully!");
+
+            const form = document.getElementById("dynamicForm");
+            form.reset();
+            form.classList.remove("was-validated");
+
+
+            document.getElementById("formFee").innerText = formFee > 0 ? `₹${formFee.toFixed(2)}` : "Free";
+        } catch (err) {
+            alert("Error downloading receipt: " + err.message);
+            // 🧹 Reset form after successful submission
+            const form = document.getElementById("dynamicForm");
+            form.reset();
+            form.classList.remove("was-validated");
+
+            // Reset displayed fee if needed
+            document.getElementById("formFee").innerText = formFee > 0 ? `₹${formFee.toFixed(2)}` : "Free";
+        }
+    }
+</script>

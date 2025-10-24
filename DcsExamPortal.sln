@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DcsExamPortal.Api", "DcsExamPortal.Api\DcsExamPortal.Api.csproj", "{5EAC4A6C-A65D-4C40-BC5B-A86DC3BF1213}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DcsExamPortal.Web", "DcsExamPortal.Web\DcsExamPortal.Web.csproj", "{2BD8AA5A-421D-44B0-B0A9-F281B7561502}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5EAC4A6C-A65D-4C40-BC5B-A86DC3BF1213}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EAC4A6C-A65D-4C40-BC5B-A86DC3BF1213}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EAC4A6C-A65D-4C40-BC5B-A86DC3BF1213}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EAC4A6C-A65D-4C40-BC5B-A86DC3BF1213}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BD8AA5A-421D-44B0-B0A9-F281B7561502}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BD8AA5A-421D-44B0-B0A9-F281B7561502}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BD8AA5A-421D-44B0-B0A9-F281B7561502}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BD8AA5A-421D-44B0-B0A9-F281B7561502}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {13CCE2CF-D12E-47E7-86C6-D64AC2EE411B}
+	EndGlobalSection
+EndGlobal

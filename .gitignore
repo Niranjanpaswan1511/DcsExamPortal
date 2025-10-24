@@ -1,0 +1,18 @@
+# Visual Studio cache and build folders
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# Publish and logs
+*.log
+*.dbmdl
+*.db
+*.jfm
+*.pdb
+
+# Other temp or config
+node_modules/
+wwwroot/lib/
+.env

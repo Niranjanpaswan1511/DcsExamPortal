@@ -1,0 +1,308 @@
+﻿@{
+    ViewData["Title"] = "Create Exam Form";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var jwtToken = Context.Session.GetString("JWTToken");
+}
+
+<style>
+    .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 32px;
+    }
+
+    .header {
+        margin-bottom: 32px;
+    }
+
+        .header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"], .form-group input[type="number"], .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+            .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 32px 0 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .field-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .field-row {
+        display: grid;
+        grid-template-columns: 1fr 200px auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+        .field-row input, .field-row select {
+            margin-bottom: 0;
+        }
+
+    .options-area {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .option-item {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+        .option-item input {
+            flex: 1;
+        }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+    .btn-danger {
+        background: #fee;
+        color: #dc2626;
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+        .btn-danger:hover {
+            background: #fdd;
+        }
+
+    .btn-success {
+        background: #10b981;
+        color: white;
+        padding: 14px 32px;
+        font-size: 16px;
+        width: 100%;
+        margin-top: 24px;
+    }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        color: #94a3b8;
+    }
+</style>
+
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <h2>Create Exam Form</h2>
+        </div>
+
+        <form id="form">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="title" required maxlength="200" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Fee Amount (₹)</label>
+                <input type="number" id="fee" min="0" value="0" required />
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isActive" checked />
+                    <label style="margin: 0">Active</label>
+                </div>
+            </div>
+
+            <div class="section-title">Form Fields</div>
+            <div id="fields"></div>
+            <button type="button" class="btn btn-secondary" onclick="addField()">+ Add Field</button>
+
+            <button type="submit" class="btn btn-success">Create Form</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const token = '@jwtToken'.trim();
+    if (!token || token === "null") location.href = "/Account/Login";
+
+    const fields = document.getElementById("fields");
+
+    function addField() {
+        const div = document.createElement("div");
+        div.className = "field-item";
+        div.innerHTML = `
+                <div class="field-row">
+                    <input type="text" class="label" placeholder="Field Label" required />
+                    <select class="type" onchange="toggleOpts(this)">
+                        <option value="text">Text</option>
+                        <option value="date">Date</option>
+                        <option value="dropdown">Dropdown</option>
+                            <option value="file">File</option>
+                    </select>
+                    <button type="button" class="btn btn-danger" onclick="this.closest('.field-item').remove()">Remove</button>
+                </div>
+                <div class="options-area" style="display:none">
+                    <div class="opts"></div>
+                    <button type="button" class="btn btn-secondary" onclick="addOpt(this)">+ Add Option</button>
+                </div>
+            `;
+        fields.appendChild(div);
+    }
+
+    function toggleOpts(sel) {
+        sel.closest(".field-item").querySelector(".options-area").style.display = sel.value === "dropdown" ? "block" : "none";
+    }
+
+    function addOpt(btn) {
+        const div = document.createElement("div");
+        div.className = "option-item";
+        div.innerHTML = `
+                <input type="text" class="opt" placeholder="Option" required />
+                <button type="button" class="btn btn-danger" onclick="this.closest('.option-item').remove()">×</button>
+            `;
+        btn.previousElementSibling.appendChild(div);
+    }
+
+    document.getElementById("form").onsubmit = async (e) => {
+        e.preventDefault();
+
+        const formFields = [];
+        fields.querySelectorAll(".field-item").forEach(div => {
+            const field = {
+                label: div.querySelector(".label").value,
+                type: div.querySelector(".type").value
+            };
+            if (field.type === "dropdown") {
+                field.options = [...div.querySelectorAll(".opt")].map(o => o.value).filter(v => v);
+                if (!field.options.length) return alert(`Add options for "${field.label}"`);
+            }
+            formFields.push(field);
+        });
+
+        if (!formFields.length) return alert("Add at least one field");
+
+        try {
+            const res = await fetch('https://localhost:7267/api/Form', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id: 0,
+                    title: document.getElementById("title").value,
+                    description: document.getElementById("description").value,
+                    fields: JSON.stringify(formFields),
+                    fee: +document.getElementById("fee").value,
+                    isActive: document.getElementById("isActive").checked,
+                    createdBy: 1
+                })
+            });
+
+            if (res.ok) {
+                alert("Form created!");
+                location.reload();
+            } else {
+                const err = await res.text();
+                alert("Error: " + err);
+            }
+        } catch (ex) {
+            alert("Error: " + ex.message);
+        }
+    };
+</script>
